@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRUD Application</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    #invalid-name {
+      display: none;
+    }
+  </style>
+
+</head>
+
+<body style="background-color:#909090;">
+  <div class="container mt-4 shadow rounded" style="background-color: #d6d6c2;">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="crud-app">
+          <h1 class="mb-3 mt-3 border border-white rounded text-center shadow">CRUD APPLICATION</h1>
+          <h2>Create Record</h2>
+          <div class="row">
+            <div class="col-md-6 col-sm-12 col-12">
+              <form id="create-form" class="mb-3">
+                <div class="form-group  ">
+                  <input type="text" class="form-control  shadow bg-light" required name="name" placeholder="Name"
+                    id="name">
+                  <small id="name-error" style="color: red; display: none;">Name is required and should not contain
+                    numbers</small>
+                </div>
+                <div class="form-group ">
+                  <input type="email" class="form-control shadow bg-light " required name="email" placeholder="Email"
+                    id="email">
+                  <small id="email-error" style="color: red; display: none;">Invalid email format</small>
+                </div>
+                <div class="form-group ">
+                  <input type="tel" class="form-control shadow bg-light" required name="phone" placeholder="Phone"
+                    id="phone">
+                  <small id="phone-error" style="color: red; display: none;">Mobile must be a 10-digit number</small>
+                </div>
+                <button type="submit" class="btn btn-primary px-5 shadow">ADD</button>
+              </form>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <h2 class="mt-4 ">Records</h2>
+        <table class="table table-bordered" style="background-color:background: rgb(238,174,202);
+        background: radial-gradient(circle, rgba(238,174,202,1) 0%, rgba(148,210,233,1) 100%);">
+          <thead>
+            <tr class="shadow border border-dark">
+              <th>Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="record-list" class="text-center shadow">
+            <!-- Records will be displayed here dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script>
+    // JavaScript to handle form submission and dynamic record display
+    const createForm = document.getElementById('create-form');
+    const recordList = document.getElementById('record-list');
+    // Function to create a new record
+    createForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      const formData = new FormData(createForm);
+      const name = formData.get('name');
+      const email = formData.get('email');
+      const phone = formData.get('phone');
+
+      if (name === '' || /\d/.test(name)) {
+        alert('Name is required and should not contain numbers')
+        return
+      }
+      if (phone === '' || !/^\d{10}$/.test(phone)) {
+        alert('Mobile must be a 10-digit number')
+        return
+      }
+      
+      if (email === '' || !/^\S+@\S+\.\S+$/.test(email)) {
+        alert('Email is not valid.');
+        return
+      }
+      const data = {
+        name,
+        email,
+        phone
+      }
+      fetch('/create', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+
+      })
+        .then(fetchAndDisplayRecords);
+      document.getElementById('name').value = ''
+      document.getElementById('email').value = ''
+      document.getElementById('phone').value = ''
+    });
+
+
+
+    // Function to fetch and display records
+    function fetchAndDisplayRecords() {
+      fetch('/read')
+        .then(response => response.json())
+        .then(records => {
+          recordList.innerHTML = '';
+          records.forEach((record, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                          <td>${record.name}</td>
+                          <td>${record.email}</td>
+                          <td>${record.phone}</td>
+                          <td>
+                              <button onclick="updateRecord(${index})" class="btn btn-primary shadow">Update</button>
+                              <button onclick="deleteRecord(${index})" class="btn btn-primary shadow">Delete</button>
+                          </td>
+                      `;
+            recordList.appendChild(row);
+          });
+        });
+    }
+
+
+    // Function to update a record
+    function updateRecord(index) {
+      const formData = {
+        name: prompt('Enter new name', ''),
+        email: prompt('Enter new email', ''),
+        phone: prompt('Enter new phone', '')
+      };
+      if (formData.name && formData.email && formData.phone) {
+        fetch(`/update?index=${index}`, {
+          method: 'PUT',
+          body: JSON.stringify(formData),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+          .then(fetchAndDisplayRecords);
+      }
+    }
+
+    // Function to delete a record
+    function deleteRecord(index) {
+      if (confirm('Are you sure you want to delete this record?')) {
+        fetch(`/delete?index=${index}`, {
+          method: 'DELETE'
+        })
+          .then(fetchAndDisplayRecords);
+      }
+    }
+
+    // Initial records fetch and display
+    fetchAndDisplayRecords();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+    integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
+    crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+</html>
